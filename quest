@@ -1,0 +1,64 @@
+'use client';
+
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { withExponentialBackoff } from '@/utils';
+
+const QuestsView = () => {
+    const [quest, setQuest] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    const generateQuestIdea = async () => {
+        setLoading(true);
+        setQuest(null);
+
+        try {
+            await withExponentialBackoff(async () => {
+                const response = await fetch('/quests');
+                const result = await response.json();
+                
+                if (response.ok) {
+                    setQuest(result);
+                } else {
+                    setQuest({ title: result.title || "Generation Failed", description: result.description || "Could not retrieve a new quest idea." });
+                }
+            });
+        } catch (error) {
+            console.error("API error:", error);
+            setQuest({ title: "API Error", description: "An error occurred while calling the API." });
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    return (
+        <div className="text-center p-8 bg-gray-800 rounded-2xl shadow-xl space-y-4 max-w-2xl mx-auto">
+            <h2 className="text-4xl font-extrabold text-white">Quests 🗺️</h2>
+            <p className="text-gray-300 text-lg">Embark on daily quests to earn rewards!</p>
+
+            <button
+                onClick={generateQuestIdea}
+                disabled={loading}
+                className="mt-6 px-8 py-3 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 transition-colors duration-300 shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {loading ? (
+                    <div className="flex items-center justify-center space-x-2">
+                        <Loader2 className="animate-spin" size={20} />
+                        <span>Generating...</span>
+                    </div>
+                ) : (
+                    "✨ Generate New Quest ✨"
+                )}
+            </button>
+
+            {quest && (
+                <div className="mt-8 bg-gray-700 p-6 rounded-xl text-left border border-gray-600 shadow-inner">
+                    <h3 className="text-2xl font-bold text-white mb-2">{quest.title}</h3>
+                    <p className="text-gray-300">{quest.description}</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default QuestsView;
